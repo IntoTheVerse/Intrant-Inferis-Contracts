@@ -2,13 +2,13 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-intrant_inferis_solana = "5ge4AFnyG6FsMaEVE8svaggVxzfZgLSS2KWRH2UdcPVn"
+intrant_inferis = "HkXSo3UjiYXEtt7LeiELjdFpAUj7wr8mRQ9px8tBMtCr"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet"
 wallet = "/home/home/.config/solana/id.json"
 
 [scripts]
