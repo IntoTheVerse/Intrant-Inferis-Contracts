@@ -2,7 +2,7 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-intrant_inferis = "HkXSo3UjiYXEtt7LeiELjdFpAUj7wr8mRQ9px8tBMtCr"
+intrant_inferis = "22GX4VQfqHoVNmL1LggYwZoMP8w5maRpyX7NCVTxyefh"
 
 [registry]
 url = "https://api.apr.dev"

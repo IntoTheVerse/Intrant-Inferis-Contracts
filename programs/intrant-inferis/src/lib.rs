@@ -2,10 +2,10 @@ use anchor_lang::prelude::*;
 use gpl_session::{SessionError, SessionToken, session_auth_or, Session};
 use anchor_spl::{token::{Transfer, TokenAccount, Token, Mint}, associated_token::AssociatedToken};
 
-declare_id!("HkXSo3UjiYXEtt7LeiELjdFpAUj7wr8mRQ9px8tBMtCr");
+declare_id!("22GX4VQfqHoVNmL1LggYwZoMP8w5maRpyX7NCVTxyefh");
 
 #[program]
-pub mod intrant_inferis_solana
+pub mod intrant_inferis 
 {
     use super::*;
 
@@ -16,6 +16,7 @@ pub mod intrant_inferis_solana
         player.username = username;
         player.authority = ctx.accounts.signer.key();
         player.inferis = 0;
+        player.potion = 0;
 
         Ok(())
     }
@@ -25,7 +26,7 @@ pub mod intrant_inferis_solana
     {
         let player_character_account = &mut ctx.accounts.player_character_account;
 
-        player_character_account.owner = ctx.accounts.signer.key();
+        player_character_account.owner = ctx.accounts.player.authority.key();
         player_character_account.nft_address = nft_address;
         player_character_account.locked = false;
         player_character_account.last_locked_time = Clock::get().unwrap().unix_timestamp as u64;
@@ -88,7 +89,14 @@ pub mod intrant_inferis_solana
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
 
-        ctx.accounts.player.inferis = ctx.accounts.player.inferis + amount;
+        if ctx.accounts.game_token.key().to_string() == "8yMuv7D4yRhfSut3pg358igd7v9dXBGxochUzx9V5Urq"
+        {
+            ctx.accounts.player.inferis = ctx.accounts.player.inferis + amount;
+        }
+        else if ctx.accounts.game_token.key().to_string() == "DSzwMFSAwFGTxPzoUcgXDab3oxaARwuzZhmtuFZzXWt8"
+        {
+            ctx.accounts.player.potion = ctx.accounts.player.potion + amount;
+        }
         Ok(())
     }
 
@@ -108,7 +116,14 @@ pub mod intrant_inferis_solana
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
 
-        ctx.accounts.player.inferis = ctx.accounts.player.inferis - amount;
+        if ctx.accounts.game_token.key().to_string() == "8yMuv7D4yRhfSut3pg358igd7v9dXBGxochUzx9V5Urq"
+        {
+            ctx.accounts.player.inferis = ctx.accounts.player.inferis - amount;
+        }
+        else if ctx.accounts.game_token.key().to_string() == "DSzwMFSAwFGTxPzoUcgXDab3oxaARwuzZhmtuFZzXWt8"
+        {
+            ctx.accounts.player.potion = ctx.accounts.player.potion - amount;
+        }
         Ok(())
     }
 }
@@ -120,7 +135,7 @@ pub struct InitializePlayer<'info>
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(init, payer = signer, seeds=[b"PLAYER", signer.key().as_ref()], bump, space = 8 + 32 + 32 + 8 + 4 + username.len())]
+    #[account(init, payer = signer, seeds=[b"PLAYER", signer.key().as_ref()], bump, space = 8 + 32 + 32 + 8 + 8 + 4 + username.len())]
     pub player: Account<'info, Player>,
 
     pub system_program: Program<'info, System>
@@ -133,7 +148,7 @@ pub struct InitializePlayerCharacter<'info>
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(init, payer = signer, seeds=[b"PLAYER_CHARACTER", signer.key().as_ref(), nft_address.as_ref()], bump, space = 8 + 32 + 32 + 1 + 8)]
+    #[account(init, payer = signer, seeds=[b"PLAYER_CHARACTER", player.authority.key().as_ref(), nft_address.as_ref()], bump, space = 8 + 32 + 32 + 1 + 8)]
     pub player_character_account: Account<'info, PlayerCharacter>,
 
     #[account(mut, seeds=[b"PLAYER", player.authority.key().as_ref()], bump)]
@@ -252,7 +267,8 @@ pub struct Player
     pub username: String,
     pub authority: Pubkey,
     pub current_player_character: Pubkey,
-    pub inferis: u64
+    pub inferis: u64,
+    pub potion: u64
 }
 
 #[account]
