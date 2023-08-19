@@ -188,15 +188,15 @@ namespace IntrantInferis
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
-        public async Task<RequestResult<string>> SendLockPlayerCharacterAsync(LockPlayerCharacterAccounts accounts, PublicKey nftAddress, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        public async Task<RequestResult<string>> SendLockPlayerCharacterAsync(LockPlayerCharacterAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.IntrantInferisProgram.LockPlayerCharacter(accounts, nftAddress, programId);
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.IntrantInferisProgram.LockPlayerCharacter(accounts, programId);
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
-        public async Task<RequestResult<string>> SendSetCurrentPlayerCharacterAsync(SetCurrentPlayerCharacterAccounts accounts, PublicKey nftAddress, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        public async Task<RequestResult<string>> SendSetCurrentPlayerCharacterAsync(SetCurrentPlayerCharacterAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.IntrantInferisProgram.SetCurrentPlayerCharacter(accounts, nftAddress, programId);
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.IntrantInferisProgram.SetCurrentPlayerCharacter(accounts, programId);
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
@@ -347,7 +347,7 @@ namespace IntrantInferis
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
             }
 
-            public static Solana.Unity.Rpc.Models.TransactionInstruction LockPlayerCharacter(LockPlayerCharacterAccounts accounts, PublicKey nftAddress, PublicKey programId)
+            public static Solana.Unity.Rpc.Models.TransactionInstruction LockPlayerCharacter(LockPlayerCharacterAccounts accounts, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
                 {Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerCharacterAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SessionToken == null ? programId : accounts.SessionToken, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
@@ -355,14 +355,12 @@ namespace IntrantInferis
                 int offset = 0;
                 _data.WriteU64(967749446419166609UL, offset);
                 offset += 8;
-                _data.WritePubKey(nftAddress, offset);
-                offset += 32;
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
             }
 
-            public static Solana.Unity.Rpc.Models.TransactionInstruction SetCurrentPlayerCharacter(SetCurrentPlayerCharacterAccounts accounts, PublicKey nftAddress, PublicKey programId)
+            public static Solana.Unity.Rpc.Models.TransactionInstruction SetCurrentPlayerCharacter(SetCurrentPlayerCharacterAccounts accounts, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
                 {Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerCharacterAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SessionToken == null ? programId : accounts.SessionToken, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
@@ -370,8 +368,6 @@ namespace IntrantInferis
                 int offset = 0;
                 _data.WriteU64(16645996380804696787UL, offset);
                 offset += 8;
-                _data.WritePubKey(nftAddress, offset);
-                offset += 32;
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use gpl_session::{SessionError, SessionToken, session_auth_or, Session};
 use anchor_spl::{token::{Transfer, TokenAccount, Token, Mint}, associated_token::AssociatedToken};
 
-declare_id!("22GX4VQfqHoVNmL1LggYwZoMP8w5maRpyX7NCVTxyefh");
+declare_id!("HQrb5QKGh5czu3hC1ahJVJW9DnZRJAs2YxEFGPsPJQop");
 
 #[program]
 pub mod intrant_inferis 
@@ -17,6 +17,7 @@ pub mod intrant_inferis
         player.authority = ctx.accounts.signer.key();
         player.inferis = 0;
         player.potion = 0;
+        player.current_player_character = Pubkey::default();
 
         Ok(())
     }
@@ -35,7 +36,7 @@ pub mod intrant_inferis
     }
 
     #[session_auth_or(ctx.accounts.player.authority.key() == ctx.accounts.signer.key(), GameErrorCode::WrongAuthority)]
-    pub fn lock_player_character(ctx: Context<LockPlayerCharacter>, _nft_address: Pubkey) -> Result<()> 
+    pub fn lock_player_character(ctx: Context<LockPlayerCharacter>) -> Result<()> 
     {
         let player_character_account = &mut ctx.accounts.player_character_account;
 
@@ -46,7 +47,7 @@ pub mod intrant_inferis
     }
 
     #[session_auth_or(ctx.accounts.player.authority.key() == ctx.accounts.signer.key(), GameErrorCode::WrongAuthority)]
-    pub fn set_current_player_character(ctx: Context<SetCurrentPlayerCharacter>, nft_address: Pubkey) -> Result<()> 
+    pub fn set_current_player_character(ctx: Context<SetCurrentPlayerCharacter>) -> Result<()> 
     {
         let player_character_account = &mut ctx.accounts.player_character_account;
         let player = &mut ctx.accounts.player;
@@ -56,11 +57,15 @@ pub mod intrant_inferis
             let current_time = Clock::get().unwrap().unix_timestamp as u64;
             let time_passed = current_time - player_character_account.last_locked_time;
 
-            if time_passed > 7200 //2 hrs in seconds
+            if time_passed > 7200
             {
-                player.current_player_character = nft_address;
+                player.current_player_character = player_character_account.nft_address;
                 player_character_account.locked = false;
             }
+        }
+        else 
+        {
+            player.current_player_character = player_character_account.nft_address;    
         }
 
         Ok(())
@@ -161,13 +166,12 @@ pub struct InitializePlayerCharacter<'info>
 }
 
 #[derive(Accounts, Session)]
-#[instruction(nft_address: Pubkey)]
 pub struct LockPlayerCharacter<'info> 
 {
     #[account()]
     pub signer: Signer<'info>,
 
-    #[account(mut, seeds=[b"PLAYER_CHARACTER", player.authority.key().as_ref(), nft_address.as_ref()], bump)]
+    #[account(mut, seeds=[b"PLAYER_CHARACTER", player.authority.key().as_ref(), player_character_account.nft_address.as_ref()], bump)]
     pub player_character_account: Account<'info, PlayerCharacter>,
 
     #[account(mut, seeds=[b"PLAYER", player.authority.key().as_ref()], bump)]
@@ -180,7 +184,6 @@ pub struct LockPlayerCharacter<'info>
 }
 
 #[derive(Accounts, Session)]
-#[instruction(nft_address: Pubkey)]
 pub struct SetCurrentPlayerCharacter<'info> 
 {
     #[account()]
@@ -189,7 +192,7 @@ pub struct SetCurrentPlayerCharacter<'info>
     #[account(mut, seeds=[b"PLAYER", player.authority.key().as_ref()], bump)]
     pub player: Account<'info, Player>,
 
-    #[account(mut, seeds=[b"PLAYER_CHARACTER", player.authority.key().as_ref(), nft_address.as_ref()], bump)]
+    #[account(mut, seeds=[b"PLAYER_CHARACTER", player.authority.key().as_ref(), player_character_account.nft_address.as_ref()], bump)]
     pub player_character_account: Account<'info, PlayerCharacter>,
 
     #[session(signer = signer, authority = player.authority.key())]
