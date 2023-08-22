@@ -6,6 +6,7 @@
 Watch the Demo Here: [https://youtu.be/-1kbQCF7psQ](https://youtu.be/-1kbQCF7psQ)
 
 [Link to the Game Repo here](https://github.com/IntoTheVerse/IntrantInferis-Game-Solana)
+Transactions on Explorer: [https://explorer.solana.com/address/HqDgxucRg7sQL5n754nVLTNnGgsKWatP8PsoCygmautG?cluster=devnet](https://explorer.solana.com/address/HqDgxucRg7sQL5n754nVLTNnGgsKWatP8PsoCygmautG?cluster=devnet)
 
 **Intrant Inferis** is a mobile rogue-action dungeon RPG adventure game built on Solana Blockchain. We have built Weekly challenges for the OPOS hackathon
 Our game is inspired by Diablo IV and crypto raiders and is an exploratory dungeon game, where the players are tasked with undoing damage done by the dark forces by venturing into the dungeons to defeat the dark forces and gain access to ancient artifacts, loot, and uncover mysteries of the Lore. 
