@@ -26,6 +26,6 @@ Our game is inspired by Diablo IV and crypto raiders and is an exploratory dunge
 3. chest loot collection with session keys powered by gum protocol session keys so players don't ahve to worry about signatures on-chain :white_check_mark: 
 4.  marketplace for potions, warriors  :white_check_mark: 
 5.  freezing on-chain after death and REVERSIBLE PERMA-DEATH using potions powered by ClockWork on-chain threads: :white_check_mark:  
- We will run a clockwork thread while locking the NFT, which will auto-unlock the NFT after 2 hours if the player doesn't use a potion after the player's death.
+ We will run a clockwork thread while locking the NFT, which will auto-unlock the NFT after 2 hours if the player doesn't use a potion after the player's death. Using a potion revives the player NFT on-chain
 6. goblins steal coins from the player's loot, when encountered while playing game, which happens (on-chain) :white_check_mark:
   
