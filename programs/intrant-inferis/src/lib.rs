@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use gpl_session::{SessionError, SessionToken, session_auth_or, Session};
+use session_keys::{SessionError, SessionToken, session_auth_or, Session};
 use anchor_spl::{token::{Transfer, TokenAccount, Token, Mint}, associated_token::AssociatedToken};
 
 declare_id!("HQrb5QKGh5czu3hC1ahJVJW9DnZRJAs2YxEFGPsPJQop");
@@ -15,8 +15,7 @@ pub mod intrant_inferis
         
         player.username = username;
         player.authority = ctx.accounts.signer.key();
-        player.inferis = 0;
-        player.potion = 0;
+        player.last_transaction_time = Clock::get().unwrap().unix_timestamp as u64;
         player.current_player_character = Pubkey::default();
 
         Ok(())
@@ -93,15 +92,8 @@ pub mod intrant_inferis
         );
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
+        ctx.accounts.player.last_transaction_time = Clock::get().unwrap().unix_timestamp as u64;
 
-        if ctx.accounts.game_token.key().to_string() == "8yMuv7D4yRhfSut3pg358igd7v9dXBGxochUzx9V5Urq"
-        {
-            ctx.accounts.player.inferis = ctx.accounts.player.inferis + amount;
-        }
-        else if ctx.accounts.game_token.key().to_string() == "DSzwMFSAwFGTxPzoUcgXDab3oxaARwuzZhmtuFZzXWt8"
-        {
-            ctx.accounts.player.potion = ctx.accounts.player.potion + amount;
-        }
         Ok(())
     }
 
@@ -120,15 +112,8 @@ pub mod intrant_inferis
         );
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
+        ctx.accounts.player.last_transaction_time = Clock::get().unwrap().unix_timestamp as u64;
 
-        if ctx.accounts.game_token.key().to_string() == "8yMuv7D4yRhfSut3pg358igd7v9dXBGxochUzx9V5Urq"
-        {
-            ctx.accounts.player.inferis = ctx.accounts.player.inferis - amount;
-        }
-        else if ctx.accounts.game_token.key().to_string() == "DSzwMFSAwFGTxPzoUcgXDab3oxaARwuzZhmtuFZzXWt8"
-        {
-            ctx.accounts.player.potion = ctx.accounts.player.potion - amount;
-        }
         Ok(())
     }
 }
@@ -270,8 +255,7 @@ pub struct Player
     pub username: String,
     pub authority: Pubkey,
     pub current_player_character: Pubkey,
-    pub inferis: u64,
-    pub potion: u64
+    pub last_transaction_time: u64,
 }
 
 #[account]

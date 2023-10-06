@@ -32,9 +32,7 @@ namespace IntrantInferis
 
             public PublicKey CurrentPlayerCharacter { get; set; }
 
-            public ulong Inferis { get; set; }
-
-            public ulong Potion { get; set; }
+            public ulong LastTransactionTime { get; set; }
 
             public static Player Deserialize(ReadOnlySpan<byte> _data)
             {
@@ -53,9 +51,7 @@ namespace IntrantInferis
                 offset += 32;
                 result.CurrentPlayerCharacter = _data.GetPubKey(offset);
                 offset += 32;
-                result.Inferis = _data.GetU64(offset);
-                offset += 8;
-                result.Potion = _data.GetU64(offset);
+                result.LastTransactionTime = _data.GetU64(offset);
                 offset += 8;
                 return result;
             }
