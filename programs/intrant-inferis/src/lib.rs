@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use session_keys::{SessionError, SessionToken, session_auth_or, Session};
 use anchor_spl::{token::{Transfer, TokenAccount, Token, Mint}, associated_token::AssociatedToken};
+use std::collections::BTreeMap;
 
 declare_id!("HQrb5QKGh5czu3hC1ahJVJW9DnZRJAs2YxEFGPsPJQop");
 
@@ -77,33 +78,40 @@ pub mod intrant_inferis
     #[session_auth_or(ctx.accounts.player.authority.key() == ctx.accounts.signer.key(), GameErrorCode::WrongAuthority)]
     pub fn claim_raffle(ctx: Context<ClaimRaffle>, raffle_type: u8) -> anchor_lang::prelude::Result<()> 
     {
-        let player = &mut ctx.accounts.player;
-
         let mut can_pass = false;
         let current_time = Clock::get().unwrap().unix_timestamp as u64;
 
         if raffle_type == 0 //Daily Free Raffle
         {
-            let time_passed = current_time - player.last_raffle_claim_time;
+            let time_passed = current_time - ctx.accounts.player.last_raffle_claim_time;
             if time_passed > 86400
             {
                 can_pass = true;
+                (*ctx.accounts.player).last_raffle_claim_time = Clock::get().unwrap().unix_timestamp as u64;
             }
         }
         else if raffle_type == 1 //Daily Paid Raffle
         {
-            let transfer_accounts = Transfer {
-                from: ctx.accounts.player_ata.to_account_info(),
-                to: ctx.accounts.vault_ata.to_account_info(),
-                authority: ctx.accounts.signer_wallet.to_account_info(),
+            let mut reduce_token_accounts = ReduceToken {
+                signer: ctx.accounts.signer.clone(),
+                signer_wallet: ctx.accounts.signer_wallet.clone(),
+                player: ctx.accounts.player.clone(),
+                vault_pda: ctx.accounts.vault_pda.clone(),
+                vault_ata: ctx.accounts.vault_ata.clone(),
+                player_ata: ctx.accounts.player_ata.clone(),
+                game_token: ctx.accounts.game_token.clone(),
+                token_program: ctx.accounts.token_program.clone(),
+                session_token: ctx.accounts.session_token.clone(),
+                associated_token_program: ctx.accounts.associated_token_program.clone(),
+                system_program: ctx.accounts.system_program.clone()
             };
 
-            let cpi_ctx = CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                transfer_accounts
-            );
-
-            anchor_spl::token::transfer(cpi_ctx, 10)?;
+            let reduce_token_context = Context::new(
+                ctx.program_id, 
+                &mut reduce_token_accounts, 
+                &[], 
+                ReduceTokenBumps::default());
+            reduce_token(reduce_token_context, 10)?; //Token Amount
 
             can_pass = true;
         }
@@ -114,17 +122,16 @@ pub mod intrant_inferis
 
         if can_pass
         {
-            let seed = (player.to_account_info().rent_epoch + player.last_raffle_claim_time % current_time) << 5;
+            let seed = (ctx.accounts.player.to_account_info().rent_epoch + ctx.accounts.player.last_raffle_claim_time % current_time) << 5;
             let random_number = get_random_number(seed, 0, 9);
 
-            player.last_raffle_value = random_number as u8;
+            (*ctx.accounts.player).last_raffle_value = random_number as u8;
             if random_number == 0
             {
 
             }
 
-            player.last_raffle_claim_time = Clock::get().unwrap().unix_timestamp as u64;
-            player.last_transaction_time = Clock::get().unwrap().unix_timestamp as u64;
+            (*ctx.accounts.player).last_transaction_time = Clock::get().unwrap().unix_timestamp as u64;
         }
 
         Ok(())
