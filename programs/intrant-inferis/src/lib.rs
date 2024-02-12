@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use session_keys::{SessionError, SessionToken, session_auth_or, Session};
 use anchor_spl::{token::{Transfer, TokenAccount, Token, Mint}, associated_token::AssociatedToken};
-use std::collections::BTreeMap;
 
 declare_id!("HQrb5QKGh5czu3hC1ahJVJW9DnZRJAs2YxEFGPsPJQop");
 
@@ -22,6 +21,7 @@ pub mod intrant_inferis
         player.authority = ctx.accounts.signer.key();
         player.last_transaction_time = Clock::get().unwrap().unix_timestamp as u64;
         player.current_player_character = Pubkey::default();
+        player.last_checkpoint_cleared = 000;
 
         Ok(())
     }
@@ -75,6 +75,17 @@ pub mod intrant_inferis
         Ok(())
     }
 
+    pub fn update_player_checkpoint(ctx: Context<UpdatePlayerCheckpoint>, checkpoint: u8) -> anchor_lang::prelude::Result<()> 
+    {
+        let player = &mut ctx.accounts.player;
+
+        require!(checkpoint > player.last_checkpoint_cleared, GameErrorCode::WrongCheckpoint);
+        
+        player.last_checkpoint_cleared = checkpoint;
+
+        Ok(())
+    }
+
     #[session_auth_or(ctx.accounts.player.authority.key() == ctx.accounts.signer.key(), GameErrorCode::WrongAuthority)]
     pub fn claim_raffle(ctx: Context<ClaimRaffle>, raffle_type: u8) -> anchor_lang::prelude::Result<()> 
     {
@@ -86,8 +97,8 @@ pub mod intrant_inferis
             let time_passed = current_time - ctx.accounts.player.last_raffle_claim_time;
             if time_passed > 86400
             {
-                can_pass = true;
                 (*ctx.accounts.player).last_raffle_claim_time = Clock::get().unwrap().unix_timestamp as u64;
+                can_pass = true;
             }
         }
         else if raffle_type == 1 //Daily Paid Raffle
@@ -128,7 +139,7 @@ pub mod intrant_inferis
             (*ctx.accounts.player).last_raffle_value = random_number as u8;
             if random_number == 0
             {
-
+                
             }
 
             (*ctx.accounts.player).last_transaction_time = Clock::get().unwrap().unix_timestamp as u64;
@@ -203,7 +214,7 @@ pub struct InitializePlayer<'info>
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(init, payer = signer, seeds=[PLAYER_SEED, signer.key().as_ref()], bump, space = 8 + 32 + 32 + 8 + 4 + username.len())]
+    #[account(init, payer = signer, seeds=[PLAYER_SEED, signer.key().as_ref()], bump, space = 8 + 32 + 32 + 8 + 1 + 1 + 8 + 4 + username.len())]
     pub player: Account<'info, Player>,
 
     pub system_program: Program<'info, System>
@@ -216,7 +227,7 @@ pub struct InitializePlayerCharacter<'info>
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(init, payer = signer, seeds=[PLAYER_CHARACTER_SEED, player.authority.key().as_ref(), nft_address.as_ref()], bump, space = 8 + 32 + 32 + 1 + 8)]
+    #[account(init, payer = signer, seeds=[PLAYER_CHARACTER_SEED, player.authority.key().as_ref(), nft_address.as_ref()], bump, space = 8 + 32 + 32 + 8 + 8 + 1 + 8)]
     pub player_character_account: Account<'info, PlayerCharacter>,
 
     #[account(mut, seeds=[PLAYER_SEED, player.authority.key().as_ref()], bump)]
@@ -238,6 +249,21 @@ pub struct LockPlayerCharacter<'info>
     pub player_character_account: Account<'info, PlayerCharacter>,
 
     #[account(mut, seeds=[PLAYER_SEED, player.authority.key().as_ref()], bump)]
+    pub player: Account<'info, Player>,
+
+    #[session(signer = signer, authority = player.authority.key())]
+    pub session_token: Option<Account<'info, SessionToken>>,
+
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts, Session)]
+pub struct UpdatePlayerCheckpoint<'info> 
+{
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(mut, seeds=[PLAYER_SEED, signer.key().as_ref()], bump)]
     pub player: Account<'info, Player>,
 
     #[session(signer = signer, authority = player.authority.key())]
@@ -368,7 +394,8 @@ pub struct Player
     pub current_player_character: Pubkey,
     pub last_transaction_time: u64,
     pub last_raffle_value: u8,
-    pub last_raffle_claim_time: u64
+    pub last_raffle_claim_time: u64,
+    pub last_checkpoint_cleared: u8
 }
 
 #[account]
@@ -377,6 +404,8 @@ pub struct PlayerCharacter
     pub owner: Pubkey,
     pub nft_address: Pubkey,
     pub locked: bool,
+    pub max_hp: u64,
+    pub max_stamina: u64,
     pub last_locked_time: u64
 }
 
@@ -386,4 +415,6 @@ pub enum GameErrorCode
 {
     #[msg("Wrong Authority")]
     WrongAuthority,
+    #[msg("Updated Checkpoint can't be smaller")]
+    WrongCheckpoint,
 }

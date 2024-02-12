@@ -34,6 +34,12 @@ namespace IntrantInferis
 
             public ulong LastTransactionTime { get; set; }
 
+            public byte LastRaffleValue { get; set; }
+
+            public ulong LastRaffleClaimTime { get; set; }
+
+            public byte LastCheckpointCleared { get; set; }
+
             public static Player Deserialize(ReadOnlySpan<byte> _data)
             {
                 int offset = 0;
@@ -53,6 +59,12 @@ namespace IntrantInferis
                 offset += 32;
                 result.LastTransactionTime = _data.GetU64(offset);
                 offset += 8;
+                result.LastRaffleValue = _data.GetU8(offset);
+                offset += 1;
+                result.LastRaffleClaimTime = _data.GetU64(offset);
+                offset += 8;
+                result.LastCheckpointCleared = _data.GetU8(offset);
+                offset += 1;
                 return result;
             }
         }
@@ -67,6 +79,10 @@ namespace IntrantInferis
             public PublicKey NftAddress { get; set; }
 
             public bool Locked { get; set; }
+
+            public ulong MaxHp { get; set; }
+
+            public ulong MaxStamina { get; set; }
 
             public ulong LastLockedTime { get; set; }
 
@@ -87,6 +103,10 @@ namespace IntrantInferis
                 offset += 32;
                 result.Locked = _data.GetBool(offset);
                 offset += 1;
+                result.MaxHp = _data.GetU64(offset);
+                offset += 8;
+                result.MaxStamina = _data.GetU64(offset);
+                offset += 8;
                 result.LastLockedTime = _data.GetU64(offset);
                 offset += 8;
                 return result;
@@ -98,7 +118,8 @@ namespace IntrantInferis
     {
         public enum IntrantInferisErrorKind : uint
         {
-            WrongAuthority = 6000U
+            WrongAuthority = 6000U,
+            WrongCheckpoint = 6001U
         }
     }
 
@@ -196,6 +217,18 @@ namespace IntrantInferis
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
+        public async Task<RequestResult<string>> SendUpdatePlayerCheckpointAsync(UpdatePlayerCheckpointAccounts accounts, byte checkpoint, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.IntrantInferisProgram.UpdatePlayerCheckpoint(accounts, checkpoint, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
+        public async Task<RequestResult<string>> SendClaimRaffleAsync(ClaimRaffleAccounts accounts, byte raffleType, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.IntrantInferisProgram.ClaimRaffle(accounts, raffleType, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
         public async Task<RequestResult<string>> SendAddTokenAsync(AddTokenAccounts accounts, ulong amount, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
             Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.IntrantInferisProgram.AddToken(accounts, amount, programId);
@@ -210,7 +243,7 @@ namespace IntrantInferis
 
         protected override Dictionary<uint, ProgramError<IntrantInferisErrorKind>> BuildErrorsDictionary()
         {
-            return new Dictionary<uint, ProgramError<IntrantInferisErrorKind>>{{6000U, new ProgramError<IntrantInferisErrorKind>(IntrantInferisErrorKind.WrongAuthority, "Wrong Authority")}, };
+            return new Dictionary<uint, ProgramError<IntrantInferisErrorKind>>{{6000U, new ProgramError<IntrantInferisErrorKind>(IntrantInferisErrorKind.WrongAuthority, "Wrong Authority")}, {6001U, new ProgramError<IntrantInferisErrorKind>(IntrantInferisErrorKind.WrongCheckpoint, "Updated Checkpoint can't be smaller")}, };
         }
     }
 
@@ -260,6 +293,42 @@ namespace IntrantInferis
             public PublicKey PlayerCharacterAccount { get; set; }
 
             public PublicKey SessionToken { get; set; }
+
+            public PublicKey SystemProgram { get; set; }
+        }
+
+        public class UpdatePlayerCheckpointAccounts
+        {
+            public PublicKey Signer { get; set; }
+
+            public PublicKey Player { get; set; }
+
+            public PublicKey SessionToken { get; set; }
+
+            public PublicKey SystemProgram { get; set; }
+        }
+
+        public class ClaimRaffleAccounts
+        {
+            public PublicKey Signer { get; set; }
+
+            public PublicKey SignerWallet { get; set; }
+
+            public PublicKey Player { get; set; }
+
+            public PublicKey VaultPda { get; set; }
+
+            public PublicKey VaultAta { get; set; }
+
+            public PublicKey PlayerAta { get; set; }
+
+            public PublicKey GameToken { get; set; }
+
+            public PublicKey TokenProgram { get; set; }
+
+            public PublicKey SessionToken { get; set; }
+
+            public PublicKey AssociatedTokenProgram { get; set; }
 
             public PublicKey SystemProgram { get; set; }
         }
@@ -364,6 +433,36 @@ namespace IntrantInferis
                 int offset = 0;
                 _data.WriteU64(16645996380804696787UL, offset);
                 offset += 8;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction UpdatePlayerCheckpoint(UpdatePlayerCheckpointAccounts accounts, byte checkpoint, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SessionToken == null ? programId : accounts.SessionToken, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(2282445561284346574UL, offset);
+                offset += 8;
+                _data.WriteU8(checkpoint, offset);
+                offset += 1;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction ClaimRaffle(ClaimRaffleAccounts accounts, byte raffleType, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.SignerWallet, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.VaultPda, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultAta, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerAta, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.GameToken, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SessionToken == null ? programId : accounts.SessionToken, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(8376924037087523265UL, offset);
+                offset += 8;
+                _data.WriteU8(raffleType, offset);
+                offset += 1;
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
